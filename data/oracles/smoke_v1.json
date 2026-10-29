@@ -1,0 +1,22 @@
+{
+  "smoke_01": {"ids":[1,2,3,9,10,12],"total_amount":"2800.00","state":"SUCCEEDED"},
+  "smoke_02": {"ids":[12,3,1,2],"total_amount":"2500.00","state":"SUCCEEDED"},
+  "smoke_03": {"ids":[1,2,3,4,9,10,11,12],"total_amount":"3320.00","state":"SUCCEEDED"},
+  "smoke_04": {"ids":[1,2,3,5,11,12],"total_amount":"3400.00","state":"SUCCEEDED"},
+  "smoke_05": {"ids":[1,2,3,4,5,10,11,12],"total_amount":"3620.00","state":"SUCCEEDED"},
+  "smoke_06": {"ids":[1,2,3,12],"total_amount":"2500.00","state":"SUCCEEDED"},
+  "smoke_07": {"ids":[],"total_amount":"0.00","state":"SUCCEEDED"},
+  "smoke_08": {"ids":[6],"total_amount":"80.00","state":"SUCCEEDED"},
+  "smoke_09": {"ids":[12,3,8,5,11,1,2,9,4,10,6,7],"total_amount":"4650.00","state":"SUCCEEDED"},
+  "smoke_10": {"ids":[1,2,3,4,5,6,7,8,9,10,11,12],"state":"SUCCEEDED","aggregate":[{"group":"上海","count":8,"total_amount":"3350.00"},{"group":"北京","count":1,"total_amount":"120.00"},{"group":"杭州","count":2,"total_amount":"480.00"},{"group":"深圳","count":1,"total_amount":"700.00"}]},
+  "smoke_11": {"ids":[1,3,10,12],"state":"SUCCEEDED"},
+  "smoke_12": {"ids":[12,3,1],"state":"SUCCEEDED","preview_ids":[12,3,1],"modified_ids":[12,3,1],"patch":{"priority":true}},
+  "smoke_13": {"ids":[12,3,1,2,9,10],"state":"SUCCEEDED","preview_ids":[3],"modified_ids":[3],"patch":{"review_status":"pending_review"}},
+  "smoke_14": {"ids":[1,2,3,9,10,12],"state":"SUCCEEDED","export_ids":[1,2,3,9,10,12]},
+  "smoke_15": {"state":"WAITING_CLARIFICATION"},
+  "smoke_16": {"ids":[1,2,3,9,10,12],"state":"FAILED","error":"FORBIDDEN"},
+  "smoke_17": {"state":"FAILED","error":"NOT_FOUND"},
+  "smoke_18": {"ids":[1,2,3,9,10,12],"state":"CANCELLED","preview_ids":[1,2,3,9,10,12]},
+  "smoke_19": {"ids":[4],"state":"SUCCEEDED","preview_ids":[4],"modified_ids":[4],"patch":{"priority":true},"retry_once":true},
+  "smoke_20": {"ids":[1,2,3,4,9,10,11,12],"state":"SUCCEEDED","preview_ids":[4],"modified_ids":[4],"patch":{"review_status":"pending_review"}}
+}

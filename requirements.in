@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+httpx
+pytest
+psycopg[binary]
+ruff==0.14.4

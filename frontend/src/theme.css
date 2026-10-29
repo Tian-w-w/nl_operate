@@ -1,0 +1,141 @@
+/* Shared palette for the workbench, analytics, audit and Agent workspace. */
+:root {
+  color-scheme: light;
+  --page: #f4f6fb;
+  --surface: #ffffff;
+  --surface-subtle: #f8fafc;
+  --surface-muted: #eef2f7;
+  --text: #172033;
+  --text-secondary: #475569;
+  --text-muted: #5b6b82;
+  --line: #e2e8f0;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-ink: #3730a3;
+  --accent-soft: #eef2ff;
+  --accent-border: #c7d2fe;
+  --on-accent: #ffffff;
+  --rail: #111b2e;
+  --rail-active: #313566;
+  --rail-text: #e0e7ff;
+  --rail-muted: #a7b4c9;
+  --rail-border: #44516b;
+  --success: #047857;
+  --success-soft: #ecfdf5;
+  --warning: #92400e;
+  --warning-soft: #fffbeb;
+  --warning-border: #f3d99b;
+  --danger: #b91c1c;
+  --danger-soft: #fff1f2;
+  --info: #1d4ed8;
+  --info-soft: #eff6ff;
+  --review: #6d28d9;
+  --review-soft: #f5f3ff;
+  --chart-primary: #6366f1;
+  --overlay: rgb(15 23 42 / 45%);
+  --shadow-card-color: rgb(15 23 42 / 4%);
+  --shadow-dialog-color: rgb(15 23 42 / 20%);
+  --focus-ring: #818cf8;
+  --focus-soft: rgb(99 102 241 / 12%);
+}
+
+/* Keep interaction and semantic states consistent across the existing layouts. */
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.primary:hover,
+.composer button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.workspace-tabs button.active,
+.assistant-tabs .active,
+.detail-tabs .active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.order-link,
+.batchbar button,
+.saved-views-heading > button,
+.view-chip button,
+.quick-views button,
+.advanced-filters summary,
+.clear-filters,
+.welcome-label {
+  color: var(--accent-ink);
+}
+
+.secondary:hover,
+.view-chip button:hover,
+.quick-views button:hover,
+.suggestions button:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.avatar,
+.assistant-icon,
+.confirm-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.assistant-context,
+.filter-summary span,
+.message.from-user p {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.assistant-context {
+  border-color: var(--accent-border);
+}
+
+.metrics > div:nth-child(2) strong,
+.insight-metrics > div:nth-child(2) strong {
+  color: var(--accent-ink);
+}
+
+.metrics > div + div::before {
+  background: var(--line);
+}
+
+.audit-changes strong {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.composer:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+
+.run-state.SUCCEEDED {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.run-state.RUNNING,
+.run-state.DECIDING,
+.run-state.TOOL_RUNNING {
+  color: var(--info);
+  background: var(--info-soft);
+}
+
+.agent-run {
+  background: var(--surface);
+  border-color: var(--accent-border);
+}
+
+.agent-run .agent-phase,
+.download {
+  color: var(--accent-ink);
+}
+
+.agent-run-title > strong {
+  color: var(--text);
+}

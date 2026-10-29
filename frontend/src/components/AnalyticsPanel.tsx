@@ -1,0 +1,30 @@
+import { useEffect, useState } from 'react'
+import { ArrowRight, BarChart3, RefreshCw } from 'lucide-react'
+import type { AnalyticsResponse, Filters_Input as Filters } from '../api-types'
+import { api } from '../api'
+import { money, statusLabels } from '../format'
+
+export function AnalyticsPanel({resultId,disabled,onDrill}:{resultId?:string;disabled:boolean;onDrill:(filters:Filters,current:boolean)=>Promise<void>}) {
+  const [scope,setScope]=useState<'current'|'all'>(resultId?'current':'all')
+  const [days,setDays]=useState(14)
+  const [data,setData]=useState<AnalyticsResponse|null>(null)
+  const [error,setError]=useState('')
+  const [loading,setLoading]=useState(true)
+  const [revision,setRevision]=useState(0)
+  useEffect(()=>{let active=true;setLoading(true);setError('');setData(null)
+    void api<AnalyticsResponse>('/analytics/orders',{result_set_id:scope==='current'?resultId:null,trend_days:days})
+      .then(value=>{if(active)setData(value)}).catch(e=>{if(active)setError(e.message)}).finally(()=>{if(active)setLoading(false)})
+    return()=>{active=false}
+  },[scope,resultId,days,revision])
+  const max=data?Math.max(...data.trend.map(point=>point.count),1):1
+  const points=data?.trend.map((point,i)=>`${20+i*560/Math.max(data.trend.length-1,1)},${140-point.count/max*110}`).join(' ')||''
+  return <section className="analytics-workspace"><div className="workspace-page-head"><div><div className="eyebrow">ORDER ANALYTICS</div><h2>订单统计看板</h2><p>按当前结果或整个租户分析，点击分组可返回订单列表继续处理。</p></div><button className="button secondary" aria-label="刷新统计" disabled={loading} onClick={()=>setRevision(value=>value+1)}><RefreshCw size={15}/>刷新</button></div>
+    <div className="analytics-toolbar"><label>统计范围<select aria-label="统计范围" value={scope} onChange={e=>setScope(e.target.value as 'all'|'current')}><option value="current" disabled={!resultId}>当前完整结果集</option><option value="all">当前租户全部订单</option></select></label><label>趋势窗口<select aria-label="趋势窗口" value={days} onChange={e=>setDays(Number(e.target.value))}><option value={7}>最近7天</option><option value={14}>最近14天</option><option value={30}>最近30天</option></select></label><span className="small muted">业务时区 Asia/Shanghai · 人民币 CNY</span></div>
+    {error&&<div className="error" role="alert">{error}</div>}{loading&&<div className="panel-loading">正在读取真实订单统计…</div>}
+    {data&&<><div className="insight-metrics"><div><span>订单总数</span><strong>{data.metrics.order_count}</strong><small>当前统计范围</small></div><div><span>订单总额</span><strong>¥{money(data.metrics.total_amount)}</strong><small>平均订单金额 ¥{money(data.metrics.average_amount)}</small></div><div><span>已付款订单金额</span><strong>¥{money(data.metrics.paid_amount)}</strong><small>含已付款、已发货和已完成</small></div><div><span>待付款金额</span><strong>¥{money(data.metrics.pending_amount)}</strong><small>尚未付款的订单金额</small></div></div>
+    <div className="queue-cards"><button disabled={disabled||!data.metrics.pending_shipment_count} onClick={()=>void onDrill({status:'paid'},scope==='current')}><span>已付款待发货</span><strong>{data.metrics.pending_shipment_count}</strong><ArrowRight size={16}/></button><button className="overdue" disabled={disabled||!data.metrics.overdue_48h_count} aria-label="查看超48小时订单" onClick={()=>void onDrill({waiting_hours_gt:48},scope==='current')}><span>等待发货超过48小时</span><strong>{data.metrics.overdue_48h_count}</strong><ArrowRight size={16}/></button><button disabled={disabled||!data.metrics.priority_count} onClick={()=>void onDrill({priority:true},scope==='current')}><span>已标记优先处理</span><strong>{data.metrics.priority_count}</strong><ArrowRight size={16}/></button><button disabled={disabled||!data.metrics.review_count} onClick={()=>void onDrill({review_status:'pending_review'},scope==='current')}><span>待复核订单</span><strong>{data.metrics.review_count}</strong><ArrowRight size={16}/></button></div>
+    <div className="chart-card"><div className="section-head"><h3><BarChart3 size={16}/>每日订单趋势</h3><span className="small muted">按创建日期统计</span></div><svg role="img" aria-label={`最近${days}天订单趋势`} viewBox="0 0 600 170" className="trend-chart"><defs><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--chart-primary)" stopOpacity="0.3"/><stop offset="1" stopColor="var(--chart-primary)" stopOpacity="0"/></linearGradient></defs>{[30,85,140].map(y=><line key={y} x1="20" x2="580" y1={y} y2={y} stroke="var(--line)" strokeDasharray="4 4"/>)}<polygon points={`20,140 ${points} 580,140`} fill="url(#trend-fill)"/><polyline points={points} fill="none" stroke="var(--chart-primary)" strokeWidth="2.5"/>{data.trend.map((point,i)=><circle key={point.date} cx={20+i*560/Math.max(data.trend.length-1,1)} cy={140-point.count/max*110} r="3" fill="var(--chart-primary)"><title>{point.date}：{point.count}笔，¥{point.total_amount}</title></circle>)}<text x="20" y="164" fill="var(--text-muted)" fontSize="10">{data.trend[0]?.date}</text><text x="580" y="164" textAnchor="end" fill="var(--text-muted)" fontSize="10">{data.trend.at(-1)?.date}</text></svg></div>
+    <div className="chart-grid">{([{title:'城市分布',groups:data.cities,field:'shipping_city'},{title:'状态分布',groups:data.statuses,field:'status'}] as const).map(chart=><section className="chart-card" key={chart.title}><h3>{chart.title}</h3><div className="breakdown-list">{chart.groups.map(group=><button key={group.group} disabled={disabled} aria-label={`查看${statusLabels[group.group]||group.group}订单`} onClick={()=>void onDrill({[chart.field]:group.group} as Filters,scope==='current')}><span>{statusLabels[group.group]||group.group}</span><div className="bar"><i style={{width:`${group.count/Math.max(...chart.groups.map(item=>item.count),1)*100}%`}}/></div><strong>{group.count}笔</strong><small>¥{money(group.total_amount)}</small></button>)}{!chart.groups.length&&<p className="small muted">当前范围没有订单。</p>}</div></section>)}</div>
+    <section className="chart-card age-chart"><h3>待发货时长分布</h3><div>{data.waiting_buckets.map(bucket=><div key={bucket.label}><span>{bucket.label}</span><strong>{bucket.count}</strong><small>笔订单</small></div>)}</div></section><p className="analytics-basis">{data.basis}</p></>}
+  </section>
+}

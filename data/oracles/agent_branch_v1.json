@@ -1,0 +1,1492 @@
+{
+  "version": "agent_branch_oracles_v1",
+  "fixture": "agent_branch_fixture_v1",
+  "split": "dev",
+  "independently_reviewed": false,
+  "cases": {
+    "branch_01": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_02": {
+      "query": {
+        "filters": {
+          "shipping_city": "杭州",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        309,
+        308,
+        307,
+        306,
+        305,
+        304,
+        303,
+        302,
+        301
+      ],
+      "total_amount": "4500.00",
+      "visible_ids": [
+        309,
+        308,
+        307,
+        306,
+        305,
+        304,
+        303,
+        302,
+        301
+      ],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 9,
+      "visible_amount": "4500.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_03": {
+      "query": {
+        "filters": {
+          "shipping_city": "北京",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        210,
+        209,
+        208,
+        207,
+        206,
+        205,
+        204,
+        203,
+        202,
+        201
+      ],
+      "total_amount": "5500.00",
+      "visible_ids": [
+        210,
+        209,
+        208,
+        207,
+        206,
+        205,
+        204,
+        203,
+        202,
+        201
+      ],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 10,
+      "visible_amount": "5500.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_04": {
+      "query": {
+        "filters": {
+          "shipping_city": "广州",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [],
+      "total_amount": "0.00",
+      "visible_ids": [],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 0,
+      "visible_amount": "0.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_05": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 72
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105
+      ],
+      "total_amount": "6800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105
+      ],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 8,
+      "visible_amount": "6800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_06": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 168
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112
+      ],
+      "total_amount": "1200.00",
+      "visible_ids": [
+        112
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        112
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 1,
+      "visible_amount": "1200.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_07": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "asc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_08": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48,
+          "amount_lte": "1000.00"
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "5500.00",
+      "visible_ids": [
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 10,
+      "visible_amount": "5500.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_09": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "total_amount"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_10": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_11": {
+      "query": {
+        "filters": {
+          "shipping_city": "北京",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 2,
+        "page_size": 3
+      },
+      "query_ids": [
+        210,
+        209,
+        208,
+        207,
+        206,
+        205,
+        204,
+        203,
+        202,
+        201
+      ],
+      "total_amount": "5500.00",
+      "visible_ids": [
+        207,
+        206,
+        205
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        210,
+        209,
+        208,
+        207,
+        206,
+        205,
+        204,
+        203,
+        202,
+        201
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 10,
+      "visible_amount": "5500.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_12": {
+      "query": {
+        "filters": {
+          "shipping_city": "杭州",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        309,
+        308,
+        307,
+        306,
+        305,
+        304,
+        303,
+        302,
+        301
+      ],
+      "total_amount": "4500.00",
+      "visible_ids": [
+        309,
+        308,
+        307,
+        306,
+        305,
+        304,
+        303,
+        302,
+        301
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        309,
+        308,
+        307,
+        306,
+        305,
+        304,
+        303,
+        302,
+        301
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 9,
+      "visible_amount": "4500.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_13": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 192
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [],
+      "total_amount": "0.00",
+      "visible_ids": [],
+      "branch": "display",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 0,
+      "visible_amount": "0.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_14": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "export",
+      "terminal_state": "SUCCEEDED",
+      "error": null,
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "export_count": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 3,
+      "agent_tool_calls": 2
+    },
+    "branch_15": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [],
+      "total_amount": "0.00",
+      "visible_ids": [],
+      "branch": "failure",
+      "terminal_state": "FAILED",
+      "error": "TOOL_EXECUTION_FAILED",
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 0,
+      "visible_total": null,
+      "visible_amount": null,
+      "result_set_count": 0,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 1,
+      "agent_tool_calls": 1
+    },
+    "branch_16": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "failure",
+      "terminal_state": "FAILED",
+      "error": "TOOL_EXECUTION_FAILED",
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 2
+    },
+    "branch_17": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [],
+      "branch": "failure",
+      "terminal_state": "FAILED",
+      "error": "RESULT_EXPIRED",
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": null,
+      "visible_amount": null,
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 2
+    },
+    "branch_18": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        210
+      ],
+      "branch": "failure",
+      "terminal_state": "FAILED",
+      "error": "STALE_CONTEXT",
+      "tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 2,
+      "visible_total": 10,
+      "visible_amount": "5500.00",
+      "result_set_count": 2,
+      "agent_proposed_tools": [
+        "query_orders",
+        "export_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_19": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "total_amount": "7800.00",
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "branch": "failure",
+      "terminal_state": "FAILED",
+      "error": "UNKNOWN_TOOL",
+      "tools": [
+        "query_orders",
+        "delete_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 1,
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "agent_proposed_tools": [
+        "query_orders",
+        "delete_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1
+    },
+    "branch_20": {
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      },
+      "query_ids": [],
+      "total_amount": "0.00",
+      "visible_ids": [],
+      "branch": "failure",
+      "terminal_state": "FAILED",
+      "error": "INVALID_TOOL_ARGUMENTS",
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "expected_context_version": 0,
+      "visible_total": null,
+      "visible_amount": null,
+      "result_set_count": 0,
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 1,
+      "agent_tool_calls": 0
+    },
+    "branch_21": {
+      "terminal_state": "WAITING_CLARIFICATION",
+      "error": null,
+      "tools": [],
+      "export_ids": [],
+      "export_count": 0,
+      "requires": "next-step decision interface and bounded runner",
+      "query_ids": [],
+      "visible_ids": [],
+      "agent_proposed_tools": [],
+      "agent_model_calls": 1,
+      "agent_tool_calls": 0,
+      "total_amount": "0.00",
+      "visible_total": null,
+      "visible_amount": null,
+      "result_set_count": 0,
+      "expected_context_version": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ]
+    },
+    "branch_22": {
+      "terminal_state": "FAILED",
+      "error": "MODEL_CALL_LIMIT",
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "requires": "next-step decision interface and bounded runner",
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "agent_proposed_tools": [
+        "query_orders"
+      ],
+      "agent_model_calls": 1,
+      "agent_tool_calls": 1,
+      "total_amount": "7800.00",
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "expected_context_version": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    "branch_23": {
+      "terminal_state": "FAILED",
+      "error": "REPEATED_TOOL_CALL",
+      "tools": [
+        "query_orders"
+      ],
+      "export_ids": [],
+      "export_count": 0,
+      "requires": "next-step decision interface and bounded runner",
+      "query_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "visible_ids": [
+        112,
+        111,
+        110,
+        109,
+        108,
+        107,
+        106,
+        105,
+        104,
+        103,
+        102,
+        101
+      ],
+      "agent_proposed_tools": [
+        "query_orders",
+        "query_orders"
+      ],
+      "agent_model_calls": 2,
+      "agent_tool_calls": 1,
+      "total_amount": "7800.00",
+      "visible_total": 12,
+      "visible_amount": "7800.00",
+      "result_set_count": 1,
+      "expected_context_version": 1,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ],
+      "query": {
+        "filters": {
+          "shipping_city": "上海",
+          "waiting_hours_gt": 48
+        },
+        "sort": [
+          {
+            "field": "total_amount",
+            "direction": "desc"
+          }
+        ],
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    "branch_24": {
+      "terminal_state": "FAILED",
+      "error": "TIME_LIMIT",
+      "tools": [],
+      "export_ids": [],
+      "export_count": 0,
+      "requires": "next-step decision interface and bounded runner",
+      "query_ids": [],
+      "visible_ids": [],
+      "agent_proposed_tools": [],
+      "agent_model_calls": 0,
+      "agent_tool_calls": 0,
+      "total_amount": "0.00",
+      "visible_total": null,
+      "visible_amount": null,
+      "result_set_count": 0,
+      "expected_context_version": 0,
+      "columns": [
+        "id",
+        "shipping_city",
+        "status",
+        "total_amount",
+        "priority"
+      ]
+    }
+  }
+}

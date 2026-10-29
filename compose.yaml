@@ -1,0 +1,48 @@
+# Optional PostgreSQL path; local smoke acceptance currently uses SQLite.
+services:
+  app:
+    profiles: [app]
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://llm4web:${POSTGRES_PASSWORD:-local_synthetic_only}@postgres:5432/llm4web_demo
+      AUTH_MODE: demo
+      MODEL_ADAPTER: ${MODEL_ADAPTER:-rules}
+      MODEL_CALLS_ENABLED: '${MODEL_CALLS_ENABLED:-false}'
+      MODEL_NAME: ${MODEL_NAME:-}
+      LOCAL_MODEL_BASE_URL: ${LOCAL_MODEL_BASE_URL:-}
+      LOCAL_MODEL_API_KEY: ${LOCAL_MODEL_API_KEY:-}
+      LOCAL_MODEL_PROTOCOL: ${LOCAL_MODEL_PROTOCOL:-chat_completions}
+      MODEL_TIMEOUT_SECONDS: '${MODEL_TIMEOUT_SECONDS:-20}'
+      MODEL_MAX_OUTPUT_TOKENS: '${MODEL_MAX_OUTPUT_TOKENS:-1024}'
+      MODEL_MAX_CALLS_PER_SESSION: '${MODEL_MAX_CALLS_PER_SESSION:-20}'
+      AGENT_MAX_MODEL_CALLS: '${AGENT_MAX_MODEL_CALLS:-6}'
+      AGENT_MAX_TOOL_CALLS: '${AGENT_MAX_TOOL_CALLS:-4}'
+      AGENT_MAX_SECONDS: '${AGENT_MAX_SECONDS:-90}'
+      AGENT_REPEAT_LIMIT: '${AGENT_REPEAT_LIMIT:-1}'
+    ports:
+      - '127.0.0.1:8000:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ready',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: llm4web_demo
+      POSTGRES_USER: llm4web
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_synthetic_only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llm4web -d llm4web_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  postgres_data:
