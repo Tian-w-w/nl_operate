@@ -5,7 +5,7 @@ import json
 from datetime import timedelta
 from decimal import Decimal
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, func, or_, select, update
 
 from .config import now
 from .models import AuditLog, Confirmation, Customer, Export, Operation, Order, OrderItem, Plan, Product, ResultSet, uid
@@ -36,13 +36,24 @@ def check_context(session, version):
 
 
 def filtered(statement, filters, reference):
+    status_conditions = []
+    if filters.status is not None:
+        status_conditions.append(Order.status == filters.status)
+    if filters.statuses is not None:
+        status_conditions.append(Order.status.in_(filters.statuses))
+    if filters.waiting_hours_gt is not None:
+        status_conditions.extend([Order.status == 'paid', Order.shipped_at.is_(None),
+                                  Order.paid_at < reference-timedelta(hours=filters.waiting_hours_gt)])
+    if status_conditions:
+        base_status = and_(*status_conditions)
+        statement = statement.where(or_(base_status, Order.status.in_(filters.additional_statuses)) if filters.additional_statuses else base_status)
     for key, value in filters.model_dump(exclude_none=True).items():
+        if key in {'status', 'statuses', 'waiting_hours_gt', 'additional_statuses'}:
+            continue
         if key == 'order_id':
             statement = statement.where(Order.id == value)
         elif key == 'shipping_cities':
             statement = statement.where(Order.shipping_city.in_(value))
-        elif key == 'statuses':
-            statement = statement.where(Order.status.in_(value))
         elif key == 'customer_name':
             statement = statement.where(select(Customer.id).where(Customer.id == Order.customer_id,Customer.tenant_id == Order.tenant_id,
                                        Customer.name.contains(value,autoescape=True)).exists())
@@ -56,7 +67,7 @@ def filtered(statement, filters, reference):
                 conditions.append(Product.category == filters.product_category)
             statement = statement.where(select(OrderItem.id).join(Product,Product.id == OrderItem.product_id)
                 .where(OrderItem.order_id == Order.id,OrderItem.tenant_id == Order.tenant_id,Product.tenant_id == Order.tenant_id,*conditions).exists())
-        elif key in {"shipping_city", "status", "priority", "review_status"}:
+        elif key in {"shipping_city", "priority", "review_status"}:
             statement = statement.where(getattr(Order, key) == value)
         elif key == "amount_gte":
             statement = statement.where(Order.total_amount >= value)
@@ -66,8 +77,6 @@ def filtered(statement, filters, reference):
             statement = statement.where(getattr(Order, key[:-4]) >= value)
         elif key.endswith("_lt"):
             statement = statement.where(getattr(Order, key[:-3]) < value)
-        elif key == "waiting_hours_gt":
-            statement = statement.where(Order.status == "paid", Order.shipped_at.is_(None), Order.paid_at < reference - timedelta(hours=value))
     return statement
 
 
@@ -353,3 +362,24 @@ def aggregate(db, session, result_id, group_by):
     return {"group_by": group_by, "result_set_id": result_id,
             "groups": [{"group": k, "count": v[0], "total_amount": format(v[1], ".2f")} for k, v in sorted(groups.items())],
             "total": len(orders), "basis": "按订单去重；金额单位CNY；范围为明确结果集"}
+
+
+def count_order_values(db, session, request, settings):
+    statement = filtered(select(Order.shipping_city, func.count(Order.id)).where(Order.tenant_id == session.tenant_id), request.filters, settings.reference)
+    result_id = None
+    if request.scope == 'current':
+        if not session.result_set_id:
+            raise BusinessError('MISSING_RESULT', '请先查询订单，才能统计当前结果中的城市。', 422)
+        result, _ = get_result(db, session, session.result_set_id)
+        result_id = result.id
+        statement = statement.where(Order.id.in_(result.ids))
+    pairs = list(db.execute(statement.group_by(Order.shipping_city).order_by(Order.shipping_city)))
+    return {'statistic_id': uid(), 'field': 'shipping_city', 'scope': request.scope, 'result_set_id': result_id,
+            'distinct_count': len(pairs), 'order_count': sum(count for _, count in pairs),
+            'values': [{'value': city, 'order_count': count} for city, count in pairs],
+            'basis': '按收货城市去重计数；范围为'+('当前完整结果集' if result_id else '当前租户符合条件的全部订单')+'；不受分页影响，不修改列表。'}
+
+
+def statistic_message(statistic):
+    scope = '当前结果中' if statistic['scope'] == 'current' else '当前租户符合条件的订单中'
+    return f"{scope}共有{statistic['distinct_count']}个不同的收货城市，涉及{statistic['order_count']}条订单。"

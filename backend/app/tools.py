@@ -1,4 +1,4 @@
-"""Two read-only business tools. No planning, conditional branching or model calls.
+"""Registered read-only business tools. No model calls.
 
 Each invocation owns a short transaction and returns success only AFTER commit.
 Trusted context must come from the server, never from model-generated arguments.
@@ -16,7 +16,7 @@ from . import service
 from .config import now
 from .models import AgentRun, AgentStep
 from .schemas import (ExportOrdersInput, ExportRequest, ExportResponse, QueryOrdersInput,
-                      QueryRequest, QueryResponse, Strict, ToolError, ToolFailure)
+                      CountOrderValuesInput, QueryResponse, StatisticResponse, Strict, ToolError, ToolFailure)
 
 
 class QueryToolSuccess(Strict):
@@ -35,6 +35,13 @@ class ExportToolSuccess(Strict):
     status: Literal['SUCCEEDED'] = 'SUCCEEDED'
     context_version: int
     output: CompletedExport
+
+
+class CountToolSuccess(Strict):
+    tool: Literal['count_order_values'] = 'count_order_values'
+    status: Literal['SUCCEEDED'] = 'SUCCEEDED'
+    context_version: int
+    output: StatisticResponse
 
 
 @dataclass(frozen=True)
@@ -71,6 +78,7 @@ class ToolSpec:
 TOOLS = MappingProxyType({
     'query_orders': ToolSpec('query_orders', '查询当前租户订单；生成完整结果集并更新当前展示页。', QueryOrdersInput, QueryToolSuccess),
     'export_orders': ToolSpec('export_orders', '导出本任务已观察的当前完整结果集，保持原有顺序；不只导出当前页。', ExportOrdersInput, ExportToolSuccess),
+    'count_order_values': ToolSpec('count_order_values', '按收货城市去重计数，默认当前租户全部订单；current仅当前结果。统计不修改列表。', CountOrderValuesInput, CountToolSuccess),
 })
 
 
@@ -117,9 +125,15 @@ def execute_tool(factory, settings, name, arguments, context: ToolContext):
                 if now() >= run.deadline_at:
                     raise service.BusinessError('TIME_LIMIT', '任务已超过总耗时上限。')
             if name == 'query_orders':
-                request = QueryRequest(**body.model_dump(), expected_context_version=context.expected_context_version)
-                result = service.query_orders(db, session, request, settings)
+                from .conversation import execute_query
+                from .models import Plan
+                parent = db.get(Plan, run.id) if run and not run.observed_ids else None
+                result = execute_query(db, session, body, settings, parent.instruction if parent else '',
+                                       parent.payload.get('conversation') if parent else None)
                 response = QueryToolSuccess(context_version=session.context_version, output=result)
+            elif name == 'count_order_values':
+                result = service.count_order_values(db, session, body, settings)
+                response = CountToolSuccess(context_version=session.context_version, output=result)
             else:
                 if body.result_set_id not in context.observed_result_set_ids:
                     raise service.BusinessError('RESULT_NOT_OBSERVED', '只能引用本任务查询工具返回的结果集。', 422)

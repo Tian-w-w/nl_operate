@@ -1,0 +1,6 @@
+{
+  "documents": [
+    {"id": "demo-shipping", "file": "shipping.md", "title": "演示发货规则", "tenants": ["a", "b", "c"], "is_demo": true},
+    {"id": "demo-delivery", "file": "delivery.md", "title": "演示快递规则", "tenants": ["a", "b", "c"], "is_demo": true}
+  ]
+}

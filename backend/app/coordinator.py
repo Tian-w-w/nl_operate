@@ -11,8 +11,9 @@ from sqlalchemy import select
 
 from .agent import execute_plan
 from .config import now
+from .conversation import constrain_action, context_for
 from .model_adapter import ModelError, ModelReply
-from .models import ModelBudgetLock, ModelCall, Plan, ResultSet, Session
+from .models import ModelBudgetLock, ModelCall, Plan, Session
 from .schemas import Action
 from .service import BusinessError, check_context
 
@@ -58,10 +59,7 @@ def run_chat(factory, token, message, version, settings, adapter, request_id):
         check_context(session,version)
         if db.scalar(select(ModelCall.id).where(ModelCall.session_id == session.id,ModelCall.state == 'RUNNING')):
             raise BusinessError('ASSISTANT_BUSY','该会话已有解析任务，请稍后重试。')
-        context = {'has_result':bool(session.result_set_id),'visible_ids':session.page_ids,'selected_ids':session.selected_ids}
-        if session.result_set_id:
-            result = db.get(ResultSet,session.result_set_id)
-            context.update({'query':result.query,'total':len(result.ids)})
+        context = {**context_for(db, session, message), 'visible_ids':session.page_ids, 'selected_ids':session.selected_ids}
         billable = bool(getattr(adapter,'billable',False))
         try:
             reserved = adapter.estimate_reservation(message,settings.reference,context) if billable else Decimal(0)
@@ -76,7 +74,7 @@ def run_chat(factory, token, message, version, settings, adapter, request_id):
         if billable and (len(attempts) >= settings.model_max_calls or committed + reserved > settings.model_budget_usd or project_committed + reserved > settings.model_project_budget_usd):
             raise BusinessError('MODEL_BUDGET_EXCEEDED','该会话模型调用次数或费用预算已用尽。',429)
         plan = Plan(session_id=session.id,instruction=message,state='RECEIVED',intent='unparsed',
-                    payload={'adapter':adapter.name,'trace':['RECEIVED'],'request_id':request_id,'expected_context_version':version})
+                    payload={'adapter':adapter.name,'trace':['RECEIVED'],'request_id':request_id,'expected_context_version':version,'conversation':context})
         db.add(plan)
         db.flush()
         call = ModelCall(plan_id=plan.id,session_id=session.id,request_id=request_id,adapter=adapter.name,
@@ -91,7 +89,7 @@ def run_chat(factory, token, message, version, settings, adapter, request_id):
     try:
         output = adapter.parse(message,settings.reference,context)
         reply = output if isinstance(output,ModelReply) else ModelReply(output)
-        parsed = Action.model_validate(reply.action).model_dump(mode='json',exclude_none=True)
+        parsed = Action.model_validate(constrain_action(message, reply.action)).model_dump(mode='json',exclude_none=True)
     except ModelError as exc:
         error = (exc.code,exc.message)
     except ValidationError:
@@ -105,6 +103,8 @@ def run_chat(factory, token, message, version, settings, adapter, request_id):
         plan, call = db.get(Plan,plan_id), db.get(ModelCall,call_id)
         call.duration_ms = elapsed
         if reply:
+            if isinstance(reply.action, dict):
+                plan.payload = {**plan.payload, 'model_proposal': reply.action}
             call.input_tokens, call.output_tokens, call.response_hash = reply.input_tokens, reply.output_tokens, reply.response_hash
             if billable and reply.input_tokens is not None and reply.output_tokens is not None:
                 call.actual_cost = ((Decimal(reply.input_tokens)*settings.model_input_rate + Decimal(reply.output_tokens)*settings.model_output_rate)/Decimal(1000000)).quantize(Decimal('.00000001'))
@@ -122,10 +122,11 @@ def run_chat(factory, token, message, version, settings, adapter, request_id):
         else:
             call.state = 'SUCCEEDED'
             response = execute_plan(db,session,plan,parsed,settings)
-        response['model_usage'] = {'request_id':request_id,'billable':billable,'duration_ms':elapsed,
+        response['model_usage'] = {'request_id':request_id,'billable':billable,'real_model':bool(getattr(adapter,'real_model',False)),'duration_ms':elapsed,
                                    'input_tokens':call.input_tokens,'output_tokens':call.output_tokens,
                                    'estimated_cost_usd':str(call.actual_cost) if call.actual_cost is not None else None,
                                    'reserved_cost_usd':str(call.reserved_cost)}
+        plan.result = {**(plan.result or {}), 'model_usage': response['model_usage']}
         logger.info(json.dumps({'event':'assistant_completed','request_id':request_id,'plan_id':plan_id,'state':response['state'],
                                 'adapter':adapter.name,'duration_ms':elapsed,'error_code':response.get('error')},ensure_ascii=False))
         return response

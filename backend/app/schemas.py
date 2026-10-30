@@ -14,6 +14,7 @@ class Filters(Strict):
     order_id: int | None = Field(default=None, ge=1)
     shipping_cities: list[str] | None = Field(default=None, min_length=1, max_length=20)
     statuses: list[Literal["pending_payment", "paid", "shipped", "completed", "cancelled"]] | None = Field(default=None, min_length=1, max_length=5)
+    additional_statuses: list[Literal["pending_payment", "paid", "shipped", "completed", "cancelled"]] | None = Field(default=None, min_length=1, max_length=5, description='Also include these statuses under the same city/amount/date filters, outside the base status and waiting-time branch.')
     customer_name: str | None = Field(default=None, min_length=1, max_length=80)
     product_keyword: str | None = Field(default=None, min_length=1, max_length=80)
     product_category: str | None = Field(default=None, min_length=1, max_length=40)
@@ -116,6 +117,63 @@ class QueryOrdersInput(Strict):
     sort: list[Sort] = Field(default_factory=lambda: [Sort()], max_length=4)
     page: int = Field(default=1, ge=1, le=100000)
     page_size: int = Field(default=20, ge=1, le=100)
+    context_mode: Literal['new', 'refine', 'revise'] = 'new'
+    clear_filters: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator('clear_filters')
+    @classmethod
+    def valid_filter_names(cls, values):
+        if any(value not in Filters.model_fields for value in values):
+            raise ValueError('Unknown filter to clear')
+        return values
+
+
+class CountOrderValuesInput(Strict):
+    field: Literal['shipping_city'] = 'shipping_city'
+    scope: Literal['tenant', 'current'] = 'tenant'
+    filters: Filters = Field(default_factory=Filters)
+
+
+class DistinctValue(Strict):
+    value: str
+    order_count: int
+
+
+class StatisticResponse(Strict):
+    statistic_id: str
+    field: Literal['shipping_city']
+    scope: Literal['tenant', 'current']
+    result_set_id: str | None
+    distinct_count: int
+    order_count: int
+    values: list[DistinctValue]
+    basis: str
+
+
+class KnowledgeSource(Strict):
+    source_id: str
+    title: str
+    section: str
+    version: str
+    is_demo: bool
+    excerpt: str
+
+
+class KnowledgeResponse(Strict):
+    answer: str
+    grounded: bool
+    mode: Literal['retrieval_only', 'retrieval_augmented_generation', 'no_evidence']
+    sources: list[KnowledgeSource]
+
+
+class ConversationMessage(Strict):
+    role: Literal['user', 'assistant']
+    text: str
+    state: str | None = None
+    knowledge: KnowledgeResponse | None = None
+    statistic: StatisticResponse | None = None
+    download: 'ExportResponse | None' = None
+    usage: 'CallUsage | None' = None
 
 
 class ExportOrdersInput(Strict):
@@ -248,6 +306,7 @@ class SessionResponse(Strict):
 class CallUsage(Strict):
     request_id: str
     billable: bool
+    real_model: bool = False
     duration_ms: int
     input_tokens: int | None
     output_tokens: int | None
@@ -271,6 +330,8 @@ class ChatResponse(Strict):
     analytics: 'AnalyticsResponse | None' = None
     audit: 'AuditResponse | None' = None
     audit_order_id: int | None = None
+    knowledge: KnowledgeResponse | None = None
+    statistic: StatisticResponse | None = None
 
 
 class PlanSummary(Strict):
@@ -284,7 +345,7 @@ class PlanSummary(Strict):
 
 class Action(Strict):
     """A plan proposal; authentication and confirmation are never model inputs."""
-    intent: Literal["query", "update", "export", "aggregate", "analytics", "audit", "detail", "page", "clarify", "refuse", "cancel"]
+    intent: Literal["query", "update", "export", "aggregate", "analytics", "audit", "detail", "page", "clarify", "refuse", "cancel", "knowledge", "count_distinct"]
     filters: Filters = Field(default_factory=Filters)
     sort: list[Sort] = Field(default_factory=lambda: [Sort()], min_length=1, max_length=4)
     patch: Patch | None = None
@@ -295,9 +356,16 @@ class Action(Strict):
     page: int = Field(default=1, ge=1, le=100000)
     order_id: int | None = Field(default=None, ge=1)
     message: str | None = Field(default=None, max_length=500)
+    context_mode: Literal['new', 'refine', 'revise'] = 'new'
+    clear_filters: list[str] = Field(default_factory=list, max_length=20)
+    statistic_scope: Literal['tenant', 'current'] = 'tenant'
+    answer: str | None = Field(default=None, max_length=1500)
+    citation_ids: list[str] = Field(default_factory=list, max_length=3)
 
     @model_validator(mode="after")
     def complete_action(self):
+        if any(value not in Filters.model_fields for value in self.clear_filters):
+            raise ValueError('Unknown filter to clear')
         if self.intent == 'update' and self.patch is None:
             raise ValueError('update requires a patch')
         if self.intent == 'detail' and self.order_id is None:
@@ -489,8 +557,25 @@ class ClarifyDecision(Strict):
     question: str = Field(min_length=1, max_length=300)
 
 
+class CountValuesDecision(Strict):
+    kind: Literal['call_tool']
+    tool: Literal['count_order_values']
+    arguments: CountOrderValuesInput
+
+
+class FinishStatisticDecision(Strict):
+    kind: Literal['finish_statistic']
+    statistic_id: str = Field(min_length=1, max_length=64)
+
+
+class KnowledgeDecision(Strict):
+    kind: Literal['answer_knowledge']
+    answer: str = Field(min_length=1, max_length=1500)
+    citation_ids: list[str] = Field(default_factory=list, max_length=3)
+
+
 class DecisionEnvelope(Strict):
-    decision: QueryDecision | ExportDecision | FinishDecision | ClarifyDecision
+    decision: QueryDecision | ExportDecision | FinishDecision | ClarifyDecision | CountValuesDecision | FinishStatisticDecision | KnowledgeDecision
 
 
 class AgentStartRequest(Strict):
@@ -530,3 +615,5 @@ class AgentRunResponse(Strict):
     elapsed_ms: int
     export: ExportResponse | None
     steps: list[AgentStepResponse]
+    knowledge: KnowledgeResponse | None = None
+    statistic: StatisticResponse | None = None

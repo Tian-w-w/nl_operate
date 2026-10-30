@@ -22,6 +22,7 @@ export function sortControlValue(sorts: Sort[]) {
 
 export const filterLabels: Record<keyof Filters, string> = {
   order_id:'订单编号', shipping_cities:'多个城市', statuses:'多个状态', customer_name:'客户名称', product_keyword:'商品名称', product_category:'商品分类',
+  additional_statuses:'额外包含状态（不受待发货时限限制）',
   shipping_city: '收货城市', status: '订单状态', priority: '优先处理', review_status: '复核状态',
   amount_gte: '金额下限', amount_lte: '金额上限', created_at_gte: '创建起点', created_at_lt: '创建终点（不含）',
   paid_at_gte: '付款起点', paid_at_lt: '付款终点（不含）', waiting_hours_gt: '等待发货超过（小时）',

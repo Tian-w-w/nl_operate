@@ -14,7 +14,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .coordinator import authenticated_session, expire_attempts, run_chat
 from .agent_runtime import available, drive_run, get_run, list_runs, start_run
-from .schemas import AgentRunResponse, AgentStartRequest
+from .schemas import AgentRunResponse, AgentStartRequest, ConversationMessage, KnowledgeSource
 from .model_adapter import create_adapter
 from .workspace_api import workspace_router
 from .schemas import AggregateResponse, ChatResponse, ExportResponse, OrderRow, PlanSummary, PreviewResponse, QueryResponse, SessionResponse
@@ -44,7 +44,7 @@ def create_app(settings=None, engine=None, adapter=None, serve_frontend=True):
         yield
         if owns_engine:
             engine.dispose()
-    app = FastAPI(title="LLM4Web · synthetic order lab", version="0.4.0", lifespan=lifespan)
+    app = FastAPI(title="订单管理平台 · synthetic order lab", version="0.5.0", lifespan=lifespan)
     app.state.engine, app.state.settings = engine, settings
     app.state.adapter = adapter or create_adapter(settings)
     app.state.request_counts = {'total':0,'errors':0}
@@ -230,6 +230,16 @@ def create_app(settings=None, engine=None, adapter=None, serve_frontend=True):
     def assistant(body: ChatRequest, request: Request):
         return run_chat(factory,request.cookies.get('llm4web_session'),body.message,body.expected_context_version,
                         settings,app.state.adapter,request.state.request_id)
+
+    @app.get('/api/conversation', response_model=list[ConversationMessage], response_model_exclude_none=True)
+    def conversation(session=Depends(authenticated, scope='function'), db=Depends(transaction, scope='function')):
+        from .conversation import messages
+        return messages(db, session)
+
+    @app.get('/api/knowledge/sources', response_model=list[KnowledgeSource])
+    def knowledge_sources(session=Depends(authenticated, scope='function')):
+        from .knowledge import chunks
+        return chunks(session.tenant_id)
 
     @app.post('/api/agent/runs', response_model=AgentRunResponse, status_code=202)
     def agent_start(body: AgentStartRequest, request: Request, background: BackgroundTasks):

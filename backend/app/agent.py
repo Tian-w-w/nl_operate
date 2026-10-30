@@ -7,7 +7,8 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from .models import PlanStep
-from .schemas import AnalyticsRequest, AuditQuery, ExportRequest, Filters, Patch, PreviewRequest, QueryRequest, Sort
+from .conversation import distinct_city_question, knowledge_question, normalize, statistic_scope, status_followup
+from .schemas import AnalyticsRequest, AuditQuery, CountOrderValuesInput, ExportRequest, Filters, Patch, PreviewRequest, QueryOrdersInput, Sort
 from .service import BusinessError, aggregate, cancel_pending, export_orders, preview, query_orders, refine, result_page
 
 
@@ -21,9 +22,19 @@ class RulesAdapter:
     name = "rules-v1-offline"
 
     def parse(self, instruction, reference, context=None):
-        text = re.sub(r"[\s，,。！!？?、]", "", instruction)
+        text = normalize(instruction)
         if any(word in text for word in ["退款", "删除", "支付", "发货给", "取消订单", "执行代码", "SQL", "其他租户", "租户b", "全部租户"]):
             return {"intent": "refuse", "message": "该操作不在当前支持范围或权限内；可查询、统计、标记优先/待复核及导出。"}
+        if distinct_city_question(text):
+            cities = [city for city in ['上海', '北京', '杭州', '深圳', '成都', '广州'] if city in text]
+            return {'intent': 'count_distinct', 'statistic_scope': statistic_scope(text),
+                    'filters': {'shipping_cities': cities} if cities else {}}
+        if status_followup(instruction):
+            return {'intent': 'query', 'context_mode': 'revise'}
+        if knowledge_question(text):
+            return {'intent': 'knowledge'}
+        for phrase in ['不要导出', '不需要导出', '无需导出', '不导出', '只展示列表并告诉我数量', '只展示列表和数量', '只展示列表', '并告诉我数量', '告诉我数量']:
+            text = text.replace(phrase, '')
         if text in {"取消", "取消修改", "不用了"}:
             return {"intent": "cancel"}
         if text == "第二页":
@@ -56,9 +67,10 @@ class RulesAdapter:
                     ("已发货", "shipped"), ("已完成", "completed"), ("已取消", "cancelled")]
         matched_status = []
         for label, value in statuses:
-            if label in rest:
+            pattern = ('(?<!等)' if label == '待发货' else '')+re.escape(label)
+            if re.search(pattern, rest):
                 matched_status.append(value)
-                rest = rest.replace(label, "")
+                rest = re.sub(pattern, '', rest)
         if len(set(matched_status)) > 1:
             return {"intent": "clarify", "message": "检测到多个订单状态，请明确一个状态。"}
         if matched_status:
@@ -192,14 +204,29 @@ def execute_plan(db, session, plan, parsed, settings):
                     from .workspace import query_audit
                     result['audit'] = query_audit(db,session,AuditQuery(order_id=parsed.get('order_id')))
                     result['audit_order_id'] = parsed.get('order_id')
+                elif intent == 'knowledge':
+                    from .knowledge import grounded_answer
+                    references = plan.payload.get('conversation', {}).get('knowledge', [])
+                    result['knowledge'] = grounded_answer(references, parsed.get('answer'), parsed.get('citation_ids'),
+                                                          generated=not plan.payload['adapter'].startswith('rules'))
+                elif intent == 'count_distinct':
+                    from .service import count_order_values
+                    result['statistic'] = count_order_values(db, session, CountOrderValuesInput(scope=parsed['statistic_scope'], filters=filters), settings)
                 else:
                     has_filters = bool(parsed.get("filters"))
                     if parsed["contextual"] and not session.result_set_id:
                         raise BusinessError("MISSING_RESULT", "请先查询订单，才能确定“这些订单”的范围", 422)
                     if intent == "query" or has_filters or (intent in {"aggregate",'analytics'} and not parsed["contextual"]):
-                        if parsed["contextual"]:
+                        if intent == 'query':
+                            from .conversation import execute_query
+                            spec = QueryOrdersInput(filters=filters, sort=parsed['sort'], page=parsed['page'],
+                                context_mode='refine' if parsed['contextual'] and parsed['context_mode'] == 'new' else parsed['context_mode'],
+                                clear_filters=parsed['clear_filters'])
+                            result['ui_patch'] = execute_query(db, session, spec, settings, plan.instruction, plan.payload.get('conversation'))
+                        elif parsed["contextual"]:
                             result["ui_patch"] = refine(db, session, filters, session.context_version, settings, sort=parsed["sort"] if parsed["sort_explicit"] else None)
                         else:
+                            from .schemas import QueryRequest
                             req = QueryRequest(filters=filters, sort=parsed["sort"], page=parsed["page"], expected_context_version=session.context_version)
                             result["ui_patch"] = query_orders(db, session, req, settings)
                     if not session.result_set_id:
@@ -215,7 +242,15 @@ def execute_plan(db, session, plan, parsed, settings):
                     elif intent == 'analytics':
                         from .workspace import analytics
                         result['analytics'] = analytics(db,session,AnalyticsRequest(result_set_id=session.result_set_id),settings)
-                result["message"] = {"analytics":"已按完整结果集打开统计看板。","audit":"已读取当前租户的真实修改记录。","page": f"已展示当前结果集的第{parsed['page']}页。", "query": "已按实际查询结果更新列表。", "detail": "已读取订单详情。", "update": "请检查具体订单和字段差异，再点击确认。", "export": "清单已生成，可以下载。", "aggregate": "已按当前结果集统计。"}[intent]
+                if intent == 'knowledge':
+                    result['message'] = result['knowledge']['answer']
+                elif intent == 'count_distinct':
+                    from .service import statistic_message
+                    result['message'] = statistic_message(result['statistic'])
+                elif intent == 'query':
+                    result['message'] = f"已按实际查询结果更新列表，共{result['ui_patch']['total']}条订单。"
+                else:
+                    result["message"] = {"analytics":"已按完整结果集打开统计看板。","audit":"已读取当前租户的真实修改记录。","page": f"已展示当前结果集的第{parsed['page']}页。", "detail": "已读取订单详情。", "update": "请检查具体订单和字段差异，再点击确认。", "export": "清单已生成，可以下载。", "aggregate": "已按当前结果集统计。"}[intent]
             transition(plan, "WAITING_CONFIRMATION" if parsed["intent"] == "update" else "SUCCEEDED")
             step.state, step.result = "SUCCEEDED", result
     except (BusinessError, ValidationError) as error:

@@ -11,10 +11,12 @@ from sqlalchemy import select
 
 from .config import now
 from .coordinator import authenticated_session, lock_budget
+from .conversation import constrain_action, context_for, distinct_city_question, knowledge_question, status_followup
+from .knowledge import grounded_answer
 from .model_adapter import ModelError, ModelReply
 from .models import AgentRun, AgentStep, Export, ModelCall, Plan, Session
-from .schemas import DecisionEnvelope
-from .service import BusinessError, check_context, digest, export_info, get_result
+from .schemas import CountValuesDecision, DecisionEnvelope
+from .service import BusinessError, check_context, digest, export_info, get_result, statistic_message
 from .tools import TOOLS, ToolContext, execute_tool
 
 logger = logging.getLogger('llm4web')
@@ -66,7 +68,8 @@ def start_run(factory, token, goal, version, settings, adapter):
                 raise BusinessError('ASSISTANT_BUSY', '该会话已有只读Agent任务。')
         if db.scalar(select(ModelCall.id).where(ModelCall.session_id == session.id, ModelCall.state == 'RUNNING', ModelCall.expires_at > now())):
             raise BusinessError('ASSISTANT_BUSY', '该会话已有模型请求。')
-        parent = Plan(session_id=session.id, state='RUNNING', intent='read_only_agent', instruction=goal, payload={'adapter': adapter.name})
+        parent = Plan(session_id=session.id, state='RUNNING', intent='read_only_agent', instruction=goal,
+                      payload={'adapter': adapter.name, 'conversation': context_for(db, session, goal)})
         db.add(parent)
         db.flush()
         run = AgentRun(id=parent.id, session_id=session.id, goal=goal, state='RUNNING', phase='QUEUED', adapter=adapter.name,
@@ -89,7 +92,8 @@ def model_state(db, run):
             output = observation['output']
             observation['output'] = {key: output[key] for key in ['result_set_id', 'total', 'total_amount', 'query']}
         observations.append(observation)
-    return {'observations': observations, 'remaining_model_calls': run.max_model_calls-run.model_calls,
+    parent = db.get(Plan, run.id)
+    return {'observations': observations, 'conversation': parent.payload.get('conversation', {}), 'remaining_model_calls': run.max_model_calls-run.model_calls,
             'remaining_tool_calls': run.max_tool_calls-run.tool_calls,
             'remaining_seconds': max(0, (run.deadline_at-now()).total_seconds())}
 
@@ -167,6 +171,7 @@ def consume_reply(factory, token, run_id, step_id, settings, reply, error, elaps
             if isinstance(reply.action, dict) and len(json.dumps(reply.action, ensure_ascii=False)) <= 50000:
                 raw_decision = reply.action.get('decision')
                 step.decision = raw_decision if isinstance(raw_decision, dict) else None
+                child.payload = {**child.payload, 'model_proposal': step.decision}
         decision = None
         try:
             if error:
@@ -175,6 +180,14 @@ def consume_reply(factory, token, run_id, step_id, settings, reply, error, elaps
                 raise BusinessError('MODEL_INTERRUPTED', '模型决策已中断或过期。')
             guard(run, session)
             decision = decode_decision(reply.action)
+            if knowledge_question(run.goal) and decision.kind not in {'answer_knowledge', 'clarify'}:
+                raise BusinessError('KNOWLEDGE_DECISION_REQUIRED', '此问题需要依据知识库回答，不能用订单操作代替。')
+            if distinct_city_question(run.goal) and decision.kind not in {'call_tool', 'finish_statistic', 'clarify'}:
+                raise BusinessError('STATISTIC_DECISION_REQUIRED', '此问题需要城市去重统计，不能用普通查询或知识回答代替。')
+            if distinct_city_question(run.goal) and decision.kind == 'call_tool' and decision.tool == 'query_orders':
+                counted = constrain_action(run.goal, {'intent': 'query', 'filters': decision.arguments.filters.model_dump(mode='json')})
+                decision = CountValuesDecision(kind='call_tool', tool='count_order_values',
+                    arguments={'scope': counted['statistic_scope'], 'filters': counted.get('filters', {})})
         except BusinessError as exc:
             call.state, call.error_code, child.state = 'FAILED', exc.code, 'FAILED'
             child.result = {'error': exc.code}
@@ -197,6 +210,29 @@ def act(factory, token, run_id, step_id, decision):
         if decision.kind == 'clarify':
             stop(db, run, None, decision.question, 'WAITING_CLARIFICATION')
             return None
+        if decision.kind == 'answer_knowledge':
+            if run.tool_calls:
+                raise BusinessError('COMPLETION_EVIDENCE', '知识回答不能代替已经发起的订单操作终态。')
+            parent = db.get(Plan, run.id)
+            knowledge = grounded_answer(parent.payload.get('conversation', {}).get('knowledge', []),
+                                         decision.answer, decision.citation_ids, generated=True)
+            stop(db, run, None, knowledge['answer'], 'SUCCEEDED')
+            parent.result = {**parent.result, 'knowledge': knowledge}
+            step.state = 'SUCCEEDED'
+            return None
+        if decision.kind == 'finish_statistic':
+            outcomes = [item.observation['output'] for item in db.scalars(select(AgentStep).where(AgentStep.run_id == run.id).order_by(AgentStep.ordinal))
+                        if item.observation and item.observation.get('tool') == 'count_order_values' and item.observation.get('status') == 'SUCCEEDED']
+            if not outcomes or outcomes[-1]['statistic_id'] != decision.statistic_id or run.result_set_id or run.export_info:
+                raise BusinessError('COMPLETION_EVIDENCE', '统计结束依据必须绑定本任务的真实统计观察。')
+            statistic = outcomes[-1]
+            if statistic['scope'] == 'current':
+                get_result(db, session, statistic['result_set_id'])
+            stop(db, run, None, statistic_message(statistic), 'SUCCEEDED')
+            parent = db.get(Plan, run.id)
+            parent.result = {**parent.result, 'statistic': statistic}
+            step.state = 'SUCCEEDED'
+            return None
         if decision.kind == 'finish':
             if not run.result_set_id or decision.result_set_id != run.result_set_id:
                 raise BusinessError('COMPLETION_EVIDENCE', '结束依据没有绑定本任务最近的查询结果。')
@@ -216,8 +252,13 @@ def act(factory, token, run_id, step_id, decision):
                 raise BusinessError('COMPLETION_EVIDENCE', '未生成所声称的文件，不能报告导出成功。')
             message = f'已查询到{len(orders)}条订单，已按查询顺序导出全部结果。' if exported else f'已查询到{len(orders)}条订单，已展示列表，未生成导出文件。'
             stop(db, run, None, message, 'SUCCEEDED')
+            if exported:
+                parent = db.get(Plan, run.id)
+                parent.result = {**parent.result, 'export': run.export_info}
             step.state = 'SUCCEEDED'
             return None
+        if status_followup(run.goal) and decision.tool == 'export_orders' and '导出' not in run.goal:
+            raise BusinessError('UNREQUESTED_EXPORT', '本轮只要求调整查询条件，未授权导出，已停止。')
         if run.tool_calls >= run.max_tool_calls:
             raise BusinessError('TOOL_CALL_LIMIT', '工具调用次数已到上限，已停止。')
         signature = digest({'tool': decision.tool, 'arguments': decision.arguments.model_dump(mode='json')})
@@ -287,6 +328,7 @@ def drive_run(factory, token, run_id, settings, adapter, request_id):
 def view_run(db, run):
     steps = list(db.scalars(select(AgentStep).where(AgentStep.run_id == run.id).order_by(AgentStep.ordinal)))
     calls = [db.get(ModelCall, step.model_call_id) for step in steps if step.model_call_id]
+    outcome = db.get(Plan, run.id).result or {}
     return {'id': run.id, 'goal': run.goal, 'state': run.state, 'phase': run.phase, 'adapter': run.adapter,
             'message': run.message, 'error': run.error, 'result_set_id': run.result_set_id, 'context_version': run.context_version,
             'model_calls': run.model_calls, 'tool_calls': run.tool_calls, 'max_model_calls': run.max_model_calls,
@@ -295,7 +337,7 @@ def view_run(db, run):
             'unknown_usage_calls': sum(call.input_tokens is None or call.output_tokens is None for call in calls),
             'estimated_cost_usd': str(sum((call.actual_cost or Decimal(0) for call in calls), Decimal(0))),
             'elapsed_ms': max(0, int(((run.finished_at or now())-run.started_at).total_seconds()*1000)),
-            'export': run.export_info if run.state == 'SUCCEEDED' else None,
+            'export': run.export_info if run.state == 'SUCCEEDED' else None, 'knowledge': outcome.get('knowledge'), 'statistic': outcome.get('statistic'),
             'steps': [{'id': step.id, 'ordinal': step.ordinal, 'state': step.state, 'decision': step.decision,
                        'observation': step.observation, 'error': step.error, 'duration_ms': step.duration_ms} for step in steps]}
 

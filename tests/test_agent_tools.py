@@ -18,9 +18,9 @@ def context(client, **changes):
     return ToolContext(**{**values, **changes})
 
 
-def test_exactly_two_tool_schemas_hide_server_fields():
+def test_registered_read_only_tool_schemas_hide_server_fields():
     catalog = tool_catalog()
-    assert [entry['name'] for entry in catalog] == ['query_orders', 'export_orders']
+    assert [entry['name'] for entry in catalog] == ['query_orders', 'export_orders', 'count_order_values']
     for entry in catalog:
         schema = entry['input_schema']
         assert schema['additionalProperties'] is False

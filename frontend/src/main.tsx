@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ArrowDownToLine, ArrowRight, BarChart3, Check, ChevronLeft, ChevronRight, ClipboardList, Command, FileCheck2, Layers3, LoaderCircle, MessageSquare, Search, Send, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { ArrowDownToLine, ArrowRight, BarChart3, BookOpen, Check, ChevronLeft, ChevronRight, ClipboardList, Command, FileCheck2, Layers3, LoaderCircle, MessageSquare, Search, Send, ShieldCheck, Sparkles, X } from 'lucide-react'
 import './style.css'
 import './workspace.css'
 import './theme.css'
@@ -11,14 +11,15 @@ import { OrderDetailDialog } from './components/OrderDetailDialog'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { AuditPanel } from './components/AuditPanel'
 import { AgentRunPanel } from './components/AgentRunPanel'
-import type { AgentRunResponse } from './api-types'
+import { AssistantEvidence, KnowledgeLibrary } from './components/AssistantEvidence'
+import type { AgentRunResponse, ConversationMessage, KnowledgeResponse, StatisticResponse } from './api-types'
 
 import type { OrderRow as Order, QueryResponse as Result, PreviewResponse as Preview, AggregateResponse as Aggregate,
   SessionResponse as Session, PlanSummary as Plan, ChatResponse as Reply, Filters_Input as Filters, Sort, Patch, QueryRequest, CallUsage } from './api-types'
 import { api, ApiError } from './api'
 import { filterLabels, isPreviousWeek, previousWeek, sortControlValue } from './filter-state'
 
-type Message = { role: 'user' | 'assistant'; text: string; state?: string; usage?: CallUsage; download?: { download_url: string; row_count: number } }
+type Message = { role: 'user' | 'assistant'; text: string; state?: string; usage?: CallUsage; download?: { download_url: string; row_count: number }; knowledge?: KnowledgeResponse; statistic?: StatisticResponse }
 
 const labels: Record<string, string> = { paid: '待发货', pending_payment: '待付款', shipped: '已发货', completed: '已完成', cancelled: '已取消' }
 const states: Record<string, string> = { SUCCEEDED: '已完成', WAITING_CONFIRMATION: '待确认', WAITING_CLARIFICATION: '待澄清', FAILED: '失败', CANCELLED: '已取消' }
@@ -42,7 +43,7 @@ function App() {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
-  const [tab, setTab] = useState<'assistant' | 'history'>('assistant')
+  const [tab, setTab] = useState<'assistant' | 'history' | 'knowledge'>('assistant')
   const [aggregate, setAggregate] = useState<Aggregate | null>(null)
   const [detail, setDetail] = useState<Order | null>(null)
   const [exportLink, setExportLink] = useState('')
@@ -61,8 +62,11 @@ function App() {
   }
   async function refresh() {
     const currentGeneration = generation.current
-    const [next, runs,agents] = await Promise.all([api<Session>('/session'), api<Plan[]>('/plans'),api<AgentRunResponse[]>('/agent/runs')])
-    if (currentGeneration === generation.current) { sync(next); setPlans(runs);setAgentRun(agents[0]??null) }
+    const [next, runs,agents,conversation] = await Promise.all([api<Session>('/session'), api<Plan[]>('/plans'),api<AgentRunResponse[]>('/agent/runs'),api<ConversationMessage[]>('/conversation')])
+    if (currentGeneration === generation.current) {
+      sync(next); setPlans(runs);setAgentRun(agents[0]??null)
+      setMessages(conversation.map(item=>({...item,state:item.state??undefined,usage:item.usage??undefined,download:item.download??undefined,knowledge:item.knowledge??undefined,statistic:item.statistic??undefined})))
+    }
     return next
   }
   async function work(fn: () => Promise<void>) {
@@ -90,7 +94,10 @@ function App() {
       }
     })
   }, [])
-  useEffect(() => { scroll.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, busy])
+  useEffect(() => {
+    const conversation = scroll.current?.parentElement
+    conversation?.scrollTo({ top: conversation.scrollHeight, behavior: 'smooth' })
+  }, [messages, busy])
   useEffect(()=>{
     if(agentRun?.state==='RUNNING'&&!busy&&watching.current!==agentRun.id){
       setAssistantMode('agent');watching.current=agentRun.id
@@ -138,7 +145,7 @@ function App() {
       setAgentRun(run);await watchAgent(run.id,generation.current);return
     }
     const reply = await api<Reply>('/assistant', { message: text, expected_context_version: session.context_version })
-    setMessages(old => [...old, { role: 'assistant', text: reply.message, state: reply.state, usage: reply.model_usage || undefined, download: reply.export || undefined }])
+    setMessages(old => [...old, { role: 'assistant', text: reply.message, state: reply.state, usage: reply.model_usage || undefined, download: reply.export || undefined,knowledge:reply.knowledge??undefined,statistic:reply.statistic??undefined }])
     if (reply.aggregate) setAggregate(reply.aggregate)
     if (reply.detail) setDetail(reply.detail)
     await refresh()
@@ -160,8 +167,8 @@ function App() {
     if (!preview) return
     await api(`/previews/${preview.preview_id}/confirm`, { digest: preview.digest })
     const operation = await api<{ affected_ids: number[]; operation_id: string }>(`/previews/${preview.preview_id}/apply`, { idempotency_key: `ui-${preview.preview_id}` })
-    setMessages(old => [...old, { role: 'assistant', text: `已更新 ${operation.affected_ids.length} 条订单；操作编号 ${operation.operation_id.slice(0, 8)}。`, state: 'SUCCEEDED' }])
     await refresh()
+    if (!preview.parent_plan_id) setMessages(old => [...old, { role: 'assistant', text: `已更新 ${operation.affected_ids.length} 条订单；操作编号 ${operation.operation_id.slice(0, 8)}。`, state: 'SUCCEEDED' }])
   }
   async function exportRows() {
     if (!result) return
@@ -184,7 +191,7 @@ function App() {
       <header className="topbar"><div className="breadcrumb"><strong className="platform-name">订单管理平台</strong><ChevronRight size={14}/><span>{view==='orders'?'订单列表':view==='analytics'?'统计看板':'操作审计'}</span></div><div className="top-right"><span className="demo-dot"/>合成数据环境<span className="divider"/><select aria-label="演示身份" value={session?.actor || 'operator_a'} disabled={busy} onChange={e => void work(() => login(e.target.value))}><option value="operator_a">租户 A · 操作员</option><option value="viewer_a">租户 A · 只读</option><option value="operator_b">租户 B · 操作员</option></select><div className="avatar">{session?.tenant.toUpperCase() || 'A'}</div></div></header>
       <div className="body">
         <main>
-          <div className="heading"><div><div className="eyebrow">OPERATIONS / 订单运营</div><h1>{view==='orders'?'订单工作台':view==='analytics'?'统计与洞察':'操作审计'}<span className="version">v0.3</span></h1><p>从筛选到处理，每一步都有据可查。</p></div>{view==='orders'&&<button className="button secondary" disabled={!result || busy} onClick={() => void work(exportRows)}><ArrowDownToLine size={16}/>导出当前结果</button>}</div>
+          <div className="heading"><div><div className="eyebrow">OPERATIONS / 订单运营</div><h1>{view==='orders'?'订单工作台':view==='analytics'?'统计与洞察':'操作审计'}<span className="version">v0.5</span></h1><p>从筛选到处理，每一步都有据可查。</p></div>{view==='orders'&&<button className="button secondary" disabled={!result || busy} onClick={() => void work(exportRows)}><ArrowDownToLine size={16}/>导出当前结果</button>}</div>
           <div className="workspace-tabs"><button className={view==='orders'?'active':''} disabled={!session||busy} onClick={()=>setView('orders')}>订单列表</button><button className={view==='analytics'?'active':''} disabled={!session||busy} onClick={()=>setView('analytics')}>统计看板</button><button className={view==='audit'?'active':''} disabled={!session||busy} onClick={()=>setView('audit')}>操作审计</button></div><div className="reference"><span className="tag"><span className="demo-dot"/>固定实验时钟</span><span>{session ? new Date(session.reference_time).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai', hour12: false }).slice(0,16) : '—'} · Asia/Shanghai</span><span className="reference-note">所有时间条件基于此刻计算</span></div>
           {error && <div className="error global-error" role="alert"><X size={15}/>{error}<button onClick={()=>setError('')}>关闭</button></div>}
           {view==='orders'&&<>{session&&<SavedViews key={`${session.tenant}:${session.actor}`} result={result} version={session.context_version} disabled={busy} onApply={id=>work(async()=>{await api(`/saved-views/${id}/apply`,{expected_context_version:session.context_version});setAggregate(null);setExportLink('');await refresh()})}/>}
@@ -204,8 +211,8 @@ function App() {
           {view==='audit'&&session&&<AuditPanel key={`${session.tenant}:${session.actor}:${auditOrderId}`} initialOrderId={auditOrderId} onDetail={id=>work(async()=>setDetail(await api(`/orders/${id}`)))}/>}
           <footer className="main-footer"><ShieldCheck size={14}/>本地研究原型 · 合成订单 · 修改须确认<span>LLM4Web / Research workspace</span></footer>
         </main>
-        <aside className="assistant"><div className="assistant-head"><div className="assistant-icon"><Sparkles size={20}/></div><div><h2>操作助手</h2><span><span className="demo-dot"/>{session?.adapter === 'rules-v1-offline' ? '离线规则模式 · 无模型调用' : `模型：${session?.adapter || '加载中'}`}</span></div></div><div className="agent-mode"><label>执行模式<select aria-label="助手执行模式" value={assistantMode} disabled={busy} onChange={e=>setAssistantMode(e.target.value as 'single'|'agent')}><option value="single">单步操作</option><option value="agent">只读 Agent · 多步决策</option></select></label>{assistantMode==='agent'&&!session?.agent_available&&<small>离线规则不提供多步决策。配置模型后可执行查询、条件判断与导出。</small>}</div><div className="assistant-context">当前操作对象：订单列表的 {result?.total ?? 0} 笔订单{view!=='orders'&&<small>看板范围独立设置；点击分组可切换到对应订单。</small>}</div><div className="assistant-tabs"><button className={tab === 'assistant' ? 'active' : ''} onClick={() => setTab('assistant')}><MessageSquare size={14}/>助手</button><button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}><FileCheck2 size={14}/>执行记录 <small>{plans.length}</small></button></div>
-          {tab === 'assistant' ? <><div className="conversation">{assistantMode==='agent'&&agentRun&&<AgentRunPanel run={agentRun}/>}<div className="welcome"><div className="welcome-label"><Command size={16}/> 用一句话，推进工作</div><p>告诉我想找哪些订单，或继续处理上一轮结果。</p><div className="suggestions">{['找出上周已付款但未发货的上海订单，按金额从高到低展示', '其中等待超过48小时的标为优先处理', '导出这些订单', '按城市统计这些订单'].map((text, i) => <button key={text} disabled={busy} onClick={() => void work(() => send(text))}><span className="suggestion-num">0{i + 1}</span>{text}<ArrowRight size={14}/></button>)}</div><div className="offline-note">{session?.adapter === 'rules-v1-offline' ? '当前使用有限规则验证业务流程。未识别的表达会请求澄清。' : '模型只提出受限操作计划；修改仍需在页面检查并确认。'}</div></div>{messages.map((m, i) => <div className={`message from-${m.role}`} key={i}><div className="message-label">{m.role === 'user' ? '你' : '操作助手'}{m.state && <span className={`run-state ${m.state}`}>{states[m.state] || m.state}</span>}</div><p>{m.text}</p>{m.usage && <div className="call-usage">{m.usage.billable ? `模型 ${m.usage.duration_ms} ms · 输入 ${m.usage.input_tokens ?? '未知'} / 输出 ${m.usage.output_tokens ?? '未知'} token · ${m.usage.estimated_cost_usd === null ? '费用待确认，保留预算占用' : `估算 $${m.usage.estimated_cost_usd}`}` : `离线解析 ${m.usage.duration_ms} ms`}<span title={m.usage.request_id}> · 请求 {m.usage.request_id.slice(0,8)}</span></div>}{m.download && <a className="download" href={m.download.download_url}><ArrowDownToLine size={14}/>下载 {m.download.row_count} 笔订单</a>}</div>)}{busy && <div className="working"><LoaderCircle size={15} className="spin"/>正在读取实际状态…</div>}<div ref={scroll}/></div><form className="composer" onSubmit={e => { e.preventDefault(); void work(() => send(input)) }}><textarea aria-label="输入业务指令" placeholder="例如：找出上海已付款未发货的订单" value={input} disabled={busy} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!busy && input.trim()) void work(() => send(input)) } }}/><div><span>Enter 发送 · Shift + Enter 换行</span><button aria-label="发送" disabled={busy || !input.trim()}><Send size={16}/></button></div></form><div className="assistant-foot"><ShieldCheck size={12}/>操作结果以业务接口和页面实际状态为准</div></> : <div className="history">{plans.length === 0 && <p className="muted">还没有执行记录。发送指令后可查看。</p>}{plans.map(p => <div className="history-item" key={p.id}><div><span className={`run-state ${p.state}`}>{states[p.state] || p.state}</span><span className="small muted">{date(p.created_at)}</span></div><p>{p.instruction}</p><code>{p.id.slice(0, 12)} · {p.intent}</code>{typeof p.result?.message === 'string' && <small>{p.result.message}</small>}</div>)}</div>}
+        <aside className="assistant"><div className="assistant-head"><div className="assistant-icon"><Sparkles size={20}/></div><div><h2>操作助手</h2><span><span className="demo-dot"/>{session?.adapter === 'rules-v1-offline' ? '离线规则模式 · 无模型调用' : `模型：${session?.adapter || '加载中'}`}</span></div></div><div className="agent-mode"><label>执行模式<select aria-label="助手执行模式" value={assistantMode} disabled={busy} onChange={e=>setAssistantMode(e.target.value as 'single'|'agent')}><option value="single">单步操作</option><option value="agent">只读 Agent · 多步决策</option></select></label>{assistantMode==='agent'&&!session?.agent_available&&<small>离线规则不提供多步决策。配置模型后可执行查询、条件判断与导出。</small>}</div><div className="assistant-context">当前操作对象：订单列表的 {result?.total ?? 0} 笔订单{view!=='orders'&&<small>看板范围独立设置；点击分组可切换到对应订单。</small>}</div><div className="assistant-tabs"><button className={tab === 'assistant' ? 'active' : ''} onClick={() => setTab('assistant')}><MessageSquare size={14}/>助手</button><button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}><FileCheck2 size={14}/>执行记录 <small>{plans.length}</small></button><button className={tab === 'knowledge' ? 'active' : ''} onClick={() => setTab('knowledge')}><BookOpen size={14}/>知识库</button></div>
+          {tab === 'assistant' ? <><div className="conversation">{assistantMode==='agent'&&agentRun&&<AgentRunPanel run={agentRun}/>}<div className="welcome"><div className="welcome-label"><Command size={16}/> 用一句话，推进工作</div><p>可以查询订单、继续调整条件、统计城市数量，或询问发货与快递规则。</p><div className="suggestions">{['找出上周已付款但未发货的上海订单，按金额从高到低展示', '其中等待超过48小时的标为优先处理', '导出这些订单', '按城市统计这些订单'].map((text, i) => <button key={text} disabled={busy} onClick={() => void work(() => send(text))}><span className="suggestion-num">0{i + 1}</span>{text}<ArrowRight size={14}/></button>)}</div><div className="offline-note">{session?.adapter === 'rules-v1-offline' ? '当前使用有限规则验证业务流程。未识别的表达会请求澄清。' : '模型只提出受限操作计划；修改仍需在页面检查并确认。'}</div></div>{messages.map((m, i) => <div className={`message from-${m.role}`} key={i}><div className="message-label">{m.role === 'user' ? '你' : '操作助手'}{m.state && <span className={`run-state ${m.state}`}>{states[m.state] || m.state}</span>}</div><p>{m.text}</p><AssistantEvidence knowledge={m.knowledge} statistic={m.statistic}/>{m.usage && <div className="call-usage">{m.usage.real_model || m.usage.billable ? `模型 ${m.usage.duration_ms} ms · 输入 ${m.usage.input_tokens ?? '未知'} / 输出 ${m.usage.output_tokens ?? '未知'} token · ${m.usage.estimated_cost_usd === null ? '费用待确认，保留预算占用' : `估算 $${m.usage.estimated_cost_usd}`}` : `离线解析 ${m.usage.duration_ms} ms`}<span title={m.usage.request_id}> · 请求 {m.usage.request_id.slice(0,8)}</span></div>}{m.download && <a className="download" href={m.download.download_url}><ArrowDownToLine size={14}/>下载 {m.download.row_count} 笔订单</a>}</div>)}{busy && <div className="working"><LoaderCircle size={15} className="spin"/>正在读取实际状态…</div>}<div ref={scroll}/></div><form className="composer" onSubmit={e => { e.preventDefault(); void work(() => send(input)) }}><textarea aria-label="输入业务指令" placeholder="例如：找出上海已付款未发货的订单" value={input} disabled={busy} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!busy && input.trim()) void work(() => send(input)) } }}/><div><span>Enter 发送 · Shift + Enter 换行</span><button aria-label="发送" disabled={busy || !input.trim()}><Send size={16}/></button></div></form><div className="assistant-foot"><ShieldCheck size={12}/>操作结果以业务接口和页面实际状态为准</div></> : tab==='knowledge' ? <KnowledgeLibrary key={`${session?.tenant}:${session?.actor}`}/> : <div className="history">{plans.length === 0 && <p className="muted">还没有执行记录。发送指令后可查看。</p>}{plans.map(p => <div className="history-item" key={p.id}><div><span className={`run-state ${p.state}`}>{states[p.state] || p.state}</span><span className="small muted">{date(p.created_at)}</span></div><p>{p.instruction}</p><code>{p.id.slice(0, 12)} · {p.intent}</code>{typeof p.result?.message === 'string' && <small>{p.result.message}</small>}</div>)}</div>}
         </aside>
       </div>
     </div>

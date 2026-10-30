@@ -2,6 +2,8 @@
 
 新机器安装、启动及连接另一台机器的模型：[部署指南](docs/deployment.md)。模型 URL、Key 和模型名填写在**项目根目录 `.env`**，该文件不提交到 GitHub。
 
+v0.5 新增可引用来源的知识问答、服务端多轮查询上下文和收货城市去重统计。内置知识为明确标注的演示规则，正式使用前应替换。[功能与测试示例](docs/features_v0.5.md) · [本轮验证](docs/verification_v05.md)。
+
 v0.4 已接入持久化只读Agent循环、步骤面板、本地模型兼容接口及独立评测。[配置与功能](docs/features_v0.4_agent.md) · [本轮验收](docs/verification_v04_agent.md)。本地URL、Key、模型名留空且调用关闭，待部署后填写；没有真实模型效果成绩。
 
 v0.3 已增加高级筛选、常用查询、完整商品/物流详情、统计看板与操作审计：[功能说明](docs/features_v0.3.md) · [本轮验收](docs/features_v03_verification.md)。

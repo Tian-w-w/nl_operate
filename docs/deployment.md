@@ -91,6 +91,8 @@ LOCAL_MODEL_PROTOCOL=chat_completions
 
 ## 启动、关闭与验证
 
+v0.5 新增知识库、多轮追加和城市数量统计，操作示例及正式资料替换方式见 [v0.5 功能说明](features_v0.5.md)。
+
 Windows 后续启动：
 
 ```powershell
