@@ -4,6 +4,7 @@ import { ArrowDownToLine, ArrowRight, BarChart3, Check, ChevronLeft, ChevronRigh
 import './style.css'
 import './workspace.css'
 import './theme.css'
+import './typography.css'
 import { AdvancedFilters } from './components/AdvancedFilters'
 import { SavedViews } from './components/SavedViews'
 import { OrderDetailDialog } from './components/OrderDetailDialog'
@@ -175,12 +176,12 @@ function App() {
 
   return <div className="app">
     <nav className="rail">
-      <a className="brand" href="/" aria-label="LLM4Web首页"><Layers3 size={24}/><span>W</span></a>
+      <a className="brand" href="/" aria-label="订单管理平台首页"><Layers3 size={24}/><span>W</span></a>
       <div className="rail-items"><button className={view==='orders'?'rail-active':''} title="订单工作台" aria-label="打开订单工作台" disabled={!session||busy} onClick={()=>setView('orders')}><ClipboardList size={21}/></button><button className={view==='audit'?'rail-active':''} title="操作审计" aria-label="打开操作审计" disabled={!session||busy} onClick={()=>setView('audit')}><FileCheck2 size={21}/></button><button className={view==='analytics'?'rail-active':''} title="统计看板" aria-label="打开统计看板" disabled={!session||busy} onClick={()=>setView('analytics')}><BarChart3 size={21}/></button></div>
       <div className="rail-footer" title="本地合成数据环境"><ShieldCheck size={21}/><span>LAB</span></div>
     </nav>
     <div className="workspace">
-      <header className="topbar"><div className="breadcrumb">WORKSPACE <ChevronRight size={12}/><span>订单管理</span></div><div className="top-right"><span className="demo-dot"/>合成数据环境<span className="divider"/><select aria-label="演示身份" value={session?.actor || 'operator_a'} disabled={busy} onChange={e => void work(() => login(e.target.value))}><option value="operator_a">租户 A · 操作员</option><option value="viewer_a">租户 A · 只读</option><option value="operator_b">租户 B · 操作员</option></select><div className="avatar">{session?.tenant.toUpperCase() || 'A'}</div></div></header>
+      <header className="topbar"><div className="breadcrumb"><strong className="platform-name">订单管理平台</strong><ChevronRight size={14}/><span>{view==='orders'?'订单列表':view==='analytics'?'统计看板':'操作审计'}</span></div><div className="top-right"><span className="demo-dot"/>合成数据环境<span className="divider"/><select aria-label="演示身份" value={session?.actor || 'operator_a'} disabled={busy} onChange={e => void work(() => login(e.target.value))}><option value="operator_a">租户 A · 操作员</option><option value="viewer_a">租户 A · 只读</option><option value="operator_b">租户 B · 操作员</option></select><div className="avatar">{session?.tenant.toUpperCase() || 'A'}</div></div></header>
       <div className="body">
         <main>
           <div className="heading"><div><div className="eyebrow">OPERATIONS / 订单运营</div><h1>{view==='orders'?'订单工作台':view==='analytics'?'统计与洞察':'操作审计'}<span className="version">v0.3</span></h1><p>从筛选到处理，每一步都有据可查。</p></div>{view==='orders'&&<button className="button secondary" disabled={!result || busy} onClick={() => void work(exportRows)}><ArrowDownToLine size={16}/>导出当前结果</button>}</div>

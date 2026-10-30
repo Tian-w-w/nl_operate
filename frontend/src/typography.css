@@ -1,0 +1,136 @@
+/* Text sizes use rem so browser font preferences remain effective. */
+body {
+  line-height: 1.6;
+}
+
+.platform-name {
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.breadcrumb {
+  min-width: 0;
+  letter-spacing: 0;
+}
+
+.breadcrumb > svg {
+  flex-shrink: 0;
+}
+
+.top-right select {
+  max-width: 190px;
+}
+
+.filters select {
+  height: 40px;
+}
+
+.extra-filters {
+  flex-wrap: wrap;
+}
+
+.amount-label input {
+  width: 80px;
+  min-height: 34px;
+}
+
+input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+
+.assistant {
+  width: 380px;
+}
+
+.composer textarea {
+  height: 96px;
+}
+
+.composer button,
+.pagination button,
+.icon-button {
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.breakdown-list > button > span {
+  width: 60px;
+}
+
+.breakdown-list small {
+  width: 100px;
+}
+
+.agent-mode label {
+  flex-wrap: wrap;
+}
+
+@media (min-width: 1550px) {
+  .assistant {
+    width: 400px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .assistant {
+    width: 340px;
+  }
+}
+
+@media (max-width: 960px) {
+  .assistant {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    height: auto;
+    min-height: 108px;
+    padding: 16px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .breadcrumb {
+    gap: 8px;
+  }
+
+  .top-right {
+    justify-content: space-between;
+    font-size: 0.8125rem;
+  }
+
+  .top-right select {
+    max-width: 170px;
+  }
+
+  .heading h1 {
+    gap: 8px;
+  }
+
+  .metrics strong {
+    font-size: 1.625rem;
+  }
+
+  .amount-label {
+    margin-left: 0;
+  }
+
+  .workspace-tabs {
+    gap: 16px;
+  }
+
+  .main-footer {
+    flex-wrap: wrap;
+  }
+
+  .breakdown-list small {
+    width: 90px;
+  }
+}
