@@ -112,7 +112,7 @@ docs/                 业务、架构、评测及实际进度
 
 ## 模型接入、CI 与容器
 
-本地模型接入见[本地模型配置](docs/features_v0.4_agent.md)。填写`.env`中的`MODEL_NAME`、`LOCAL_MODEL_BASE_URL`、可选`LOCAL_MODEL_API_KEY`，选择`MODEL_ADAPTER=local`和正确协议，准备好后才启用`MODEL_CALLS_ENABLED=true`。当前全部模型调用关闭。网页选择“只读Agent”使用多步流程；`python -m scripts.manage agent-eval`只运行脚本回归，显式加`--real`才使用已配置的模型。原有单步路径保留。
+本地模型接入见[本地模型配置](docs/features_v0.4_agent.md)。填写`.env`中的`MODEL_NAME`、`LOCAL_MODEL_BASE_URL`、可选`LOCAL_MODEL_API_KEY`，选择`MODEL_ADAPTER=local`和正确协议。网关提供完整请求地址时，改用`LOCAL_MODEL_ENDPOINT_URL`，它优先于基础地址且不拼接路径。准备好后才启用`MODEL_CALLS_ENABLED=true`。模板默认关闭模型调用。网页选择“只读Agent”使用多步流程；`python -m scripts.manage agent-eval`只运行脚本回归，显式加`--real`才使用已配置的模型。原有单步路径保留。
 
 默认规则模式不产生模型费用。若启用 OpenAI，在后端 `.env` 中填写 `.env.example` 的模型标识、key、输入/输出费率、单会话及全项目预算，并显式设置 MODEL_ADAPTER=openai 和 MODEL_CALLS_ENABLED=true。费率没有默认猜测值；配置不完整会拒绝启用。**本轮没有真实密钥联调或模型成绩。**
 

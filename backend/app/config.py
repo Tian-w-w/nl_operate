@@ -35,6 +35,7 @@ class Settings:
     model_output_rate: Decimal = env('MODEL_OUTPUT_USD_PER_MILLION', '0', Decimal)
     model_api_key: str = field(default_factory=lambda: os.getenv('OPENAI_API_KEY', ''), repr=False)
     local_model_base_url: str = env('LOCAL_MODEL_BASE_URL', '')
+    local_model_endpoint_url: str = env('LOCAL_MODEL_ENDPOINT_URL', '')
     local_model_api_key: str = field(default_factory=lambda: os.getenv('LOCAL_MODEL_API_KEY', ''), repr=False)
     local_model_protocol: str = env('LOCAL_MODEL_PROTOCOL', 'chat_completions')
 
@@ -44,9 +45,9 @@ class Settings:
         if self.local_model_protocol not in {'chat_completions','responses'}:
             raise ValueError('Unsupported LOCAL_MODEL_PROTOCOL')
         if self.model_adapter == 'local' and self.model_enabled:
-            url = urlsplit(self.local_model_base_url)
+            url = urlsplit(self.local_model_endpoint_url or self.local_model_base_url)
             if not self.model_name or url.scheme not in {'http','https'} or not url.hostname or url.username or url.password or url.query or url.fragment:
-                raise ValueError('Enabled local model requires MODEL_NAME and an HTTP(S) LOCAL_MODEL_BASE_URL without credentials/query/fragment')
+                raise ValueError('Enabled local model requires MODEL_NAME and an HTTP(S) LOCAL_MODEL_ENDPOINT_URL or LOCAL_MODEL_BASE_URL without credentials/query/fragment')
         if datetime.fromisoformat(self.reference_time).tzinfo is None:
             raise ValueError('REFERENCE_TIME must include a timezone')
         if self.result_ttl <= 0 or self.confirm_ttl <= 0 or not 0 < self.model_timeout <= 60:

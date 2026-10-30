@@ -66,9 +66,24 @@ LOCAL_MODEL_PROTOCOL=chat_completions
 
 - `MODEL_NAME` 必须是模型服务接受的标识，可以从服务配置或其 `/v1/models` 接口确认。
 - `LOCAL_MODEL_BASE_URL` 是 API 基础地址。通常包含 `/v1`，不要填写完整的 `/chat/completions` 或 `/responses` 请求地址；项目会拼接后缀。
+- 如果平台提供的是完整请求地址，改用 `LOCAL_MODEL_ENDPOINT_URL`。此字段优先于 `LOCAL_MODEL_BASE_URL`，直接向该地址发送 POST，不拼接路径；协议仍由 `LOCAL_MODEL_PROTOCOL` 指定。
 - `LOCAL_MODEL_API_KEY` 会以 `Authorization: Bearer ...` 发送；模型服务没有鉴权时可以留空。本地模型使用此字段，`OPENAI_API_KEY` 留空即可。
 - `chat_completions` 请求基础地址后的 `/chat/completions`；如果服务提供 Responses 兼容接口，则改为 `responses`。
 - 需要兼容所选协议，支持工具调用或返回接口要求的严格 JSON 决策；仅能自由聊天的模型接口无法保证执行 Agent 任务。
+
+例如企业网关要求直接请求自定义路径时，可以配置：
+
+```dotenv
+MODEL_ADAPTER=local
+MODEL_CALLS_ENABLED=true
+MODEL_NAME=平台提供的模型标识
+LOCAL_MODEL_BASE_URL=
+LOCAL_MODEL_ENDPOINT_URL=https://gateway.example.com/v3/openai/model
+LOCAL_MODEL_API_KEY=实际的服务密钥
+LOCAL_MODEL_PROTOCOL=chat_completions
+```
+
+将示例域名替换为实际地址。请求格式仍为所选协议的 JSON，默认鉴权仍为 `Authorization: Bearer ...`；如果网关还要求自定义请求体或鉴权，需要按平台调用示例另外适配。完整地址与基础地址都必须使用 HTTP(S)，不能包含用户名、密码、查询参数或 fragment。模型标识和密钥不要放入 URL。
 
 模型在另一台机器时，填写**模型机器的局域网 IP / 可达域名**。`127.0.0.1` 指向项目进程所在机器；只有两者在同一台机器上运行时才适用。模型服务需要监听可供项目机器访问的地址，并允许对应端口连接。前端通过本项目后端调用模型，Key 无需提供给前端。
 

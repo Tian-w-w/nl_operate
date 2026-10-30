@@ -18,13 +18,18 @@ MODEL_ADAPTER=local
 MODEL_CALLS_ENABLED=false
 MODEL_NAME=
 LOCAL_MODEL_BASE_URL=
+LOCAL_MODEL_ENDPOINT_URL=
 LOCAL_MODEL_API_KEY=
 LOCAL_MODEL_PROTOCOL=chat_completions
 ```
 
 URL、Key和模型名按要求留空。准备好服务后填写URL和模型名，并将`MODEL_CALLS_ENABLED`改为`true`；需要鉴权时填写本地Key，无鉴权服务可留空。不要把真实Key提交到Git。`.env`已被忽略，当前默认仍是rules、调用关闭。
 
-`LOCAL_MODEL_BASE_URL`是API基础地址，应按服务实际情况包含`/v1`，不要重复填写`/chat/completions`或`/responses`后缀。协议可选：
+`LOCAL_MODEL_BASE_URL`是API基础地址，应按服务实际情况包含`/v1`，不要重复填写`/chat/completions`或`/responses`后缀。
+
+若网关提供完整请求地址，填写`LOCAL_MODEL_ENDPOINT_URL`；它优先于基础地址，原样使用，不追加协议路径。请求体和响应解析仍由`LOCAL_MODEL_PROTOCOL`决定，Key仍使用Bearer鉴权。
+
+协议可选（未设置完整请求地址时按下表拼接）：
 
 |设置|实际请求|预期响应|
 |---|---|---|

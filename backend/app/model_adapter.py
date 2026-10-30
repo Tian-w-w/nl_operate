@@ -181,6 +181,8 @@ class LocalModelAdapter(OpenAIAdapter):
         self.name = f'local-{settings.local_model_protocol}:{self.model or "unconfigured"}'
 
     def endpoint(self):
+        if self.settings.local_model_endpoint_url:
+            return self.settings.local_model_endpoint_url
         suffix = 'chat/completions' if self.settings.local_model_protocol == 'chat_completions' else 'responses'
         return self.settings.local_model_base_url.rstrip('/')+'/'+suffix
 
